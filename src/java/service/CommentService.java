@@ -1,27 +1,19 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package service;
 
-/**
- *
- * @author joybo
- */
+import DTO.CommentDTO;
 import java.util.List;
-import javax.ejb.Local;
-import Entity.Comments;
+import javax.ejb.Remote;
 
-@Local
+@Remote
 public interface CommentService {
 
-    void addComment(String postId, String userId, String text);
-        
-    void editComment(String postId, String userId, String text);
-    
-    void deleteComment(String postId, Long commentId);
+    CommentDTO addComment(Long postId, String userId, String text);
 
-    List<Comments> getCommentsByPost(String postId);
-    
-    
+    CommentDTO editComment(Long commentId, String userId, String text);
+
+    void deleteComment(Long commentId, String userId);
+
+    List<CommentDTO> getCommentsByPost(Long postId);
+
+    CommentDTO getCommentById(Long commentId);
 }

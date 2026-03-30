@@ -1,10 +1,8 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package ServiceImplement;
 
+import DTO.CommentsDTO;
 import Entity.Comments;
+import Entity.Post;
 import service.CommentService;
 import javax.ejb.Stateless;
 import javax.persistence.*;
@@ -17,40 +15,126 @@ public class CommentServiceBean implements CommentService {
     private EntityManager em;
 
     @Override
-    public void addComment(String postId, String userId, String text) {
-        Comments c = new Comments();
-        c.setPostId(postId);
-        c.setUserId(userId);
-        c.setText(text);
-        c.setCreatedAt(new Date());
+    public CommentsDTO addComment(Long postId, String userId, String text) {
+        validatePostId(postId);
+        validateUserId(userId);
+        validateCommentText(text);
 
-        em.persist(c);
+        // Kiểm tra post tồn tại và chưa bị xóa
+        Post post = findActivePost(postId);
+
+        Comments comment = new Comments();
+        comment.setPostId(postId);
+        comment.setUserId(userId);
+        comment.setText(text.trim());
+
+        em.persist(comment);
+        em.flush();
+        return CommentsDTO.fromEntity(comment);
     }
 
-    public void deleteComment(Long commentId) {
-        Comments c = em.find(Comments.class, commentId);
-        if (c != null) {
-            em.remove(c);
+    @Override
+    public CommentsDTO editComment(Long commentId, String userId, String text) {
+        validateCommentId(commentId);
+        validateUserId(userId);
+        validateCommentText(text);
+
+        Comments comment = findActiveComment(commentId);
+        verifyOwnership(comment, userId);
+
+        comment.setText(text.trim());
+        em.merge(comment);
+        return CommentsDTO.fromEntity(comment);
+    }
+
+    @Override
+    public void deleteComment(Long commentId, String userId) {
+        validateCommentId(commentId);
+        validateUserId(userId);
+
+        Comments comment = findActiveComment(commentId);
+        verifyOwnership(comment, userId);
+
+        comment.setDeleted(true);
+        em.merge(comment);
+    }
+
+    @Override
+    public List<CommentsDTO> getCommentsByPost(Long postId) {
+        validatePostId(postId);
+        
+        // Kiểm tra post tồn tại
+        findActivePost(postId);
+
+        List<Comments> comments = em.createNamedQuery("Comments.findByPostId", Comments.class)
+                .setParameter("postId", postId)
+                .getResultList();
+
+        return toCommentsDTOList(comments);
+    }
+
+    @Override
+    public CommentsDTO getCommentById(Long commentId) {
+        validateCommentId(commentId);
+        Comments comment = findActiveComment(commentId);
+        return CommentsDTO.fromEntity(comment);
+    }
+
+    private Comments findActiveComment(Long commentId) {
+        Comments comment = em.find(Comments.class, commentId);
+        if (comment == null || comment.isDeleted()) {
+            throw new IllegalArgumentException("Bình luận với ID " + commentId + " không tồn tại.");
+        }
+        return comment;
+    }
+
+    private Post findActivePost(Long postId) {
+        Post post = em.find(Post.class, postId);
+        if (post == null || post.isDeleted()) {
+            throw new IllegalArgumentException("Bài đăng với ID " + postId + " không tồn tại.");
+        }
+        return post;
+    }
+
+    private void verifyOwnership(Comments comment, String userId) {
+        if (!comment.getUserId().equals(userId)) {
+            throw new SecurityException("Người dùng " + userId + " không có quyền thao tác trên bình luận này.");
         }
     }
 
-    @Override
-    public List<Comments> getCommentsByPost(String postId) {
-        return em.createQuery(
-                "SELECT c FROM Comment c WHERE c.postId = :postId",
-                Comments.class)
-                .setParameter("postId", postId)
-                .getResultList();
+    private void validateCommentId(Long commentId) {
+        if (commentId == null) {
+            throw new IllegalArgumentException("commentId không được null.");
+        }
     }
 
-    @Override
-    public void editComment(String postId, String userId, String text) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    private void validatePostId(Long postId) {
+        if (postId == null) {
+            throw new IllegalArgumentException("postId không được null.");
+        }
     }
 
-    @Override
-    public void deleteComment(String postId, Long commentId) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    private void validateUserId(String userId) {
+        if (userId == null || userId.trim().isEmpty()) {
+            throw new IllegalArgumentException("userId không được để trống.");
+        }
     }
-    
+
+    private void validateCommentText(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            throw new IllegalArgumentException("Nội dung bình luận không được để trống.");
+        }
+    }
+
+    private List<CommentsDTO> toCommentsDTOList(List<Comments> comments) {
+        List<CommentsDTO> result = new ArrayList<>();
+        if (comments != null) {
+            for (Comments c : comments) {
+                if (!c.isDeleted()) {
+                    result.add(CommentsDTO.fromEntity(c));
+                }
+            }
+        }
+        return result;
+    }
 }
