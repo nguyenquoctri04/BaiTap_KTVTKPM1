@@ -1,7 +1,6 @@
 package Entity;
 
 import java.io.Serializable;
-import java.time.Instant;
 import java.util.Date;
 import javax.persistence.*;
 
@@ -16,8 +15,9 @@ public class Comments implements Serializable {
     private String postId;
     private String userID;
     private String text;
-    @Temporal(javax.persistence.TemporalType.DATE)
-    private Instant createAt;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createAt;
 
     public Comments() {
     }
@@ -26,11 +26,10 @@ public class Comments implements Serializable {
         this.postId = postId;
         this.userID = userID;
         this.text = text;
-        this.createAt = Instant.now();
+        this.createAt = new Date(); // ✅ dùng new Date() thay vì Instant.now()
     }
 
     // ===== Getter & Setter =====
-
     public Long getCommentId() {
         return commentId;
     }
@@ -62,8 +61,16 @@ public class Comments implements Serializable {
     public void setText(String text) {
         this.text = text;
     }
-    
-    public Instant getCreateAt(){
+
+    public Date getCreateAt() { 
         return createAt;
+    }
+
+    public void setCreateAt(Date createAt) {
+        this.createAt = createAt;
+    }
+
+    public void setCreatedAt(Date date) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 }

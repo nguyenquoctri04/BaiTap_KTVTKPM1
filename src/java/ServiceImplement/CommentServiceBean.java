@@ -4,10 +4,6 @@
  */
 package ServiceImplement;
 
-/**
- *
- * @author joybo
- */
 import Entity.Comments;
 import service.CommentService;
 import javax.ejb.Stateless;
@@ -31,7 +27,6 @@ public class CommentServiceBean implements CommentService {
         em.persist(c);
     }
 
-    @Override
     public void deleteComment(Long commentId) {
         Comments c = em.find(Comments.class, commentId);
         if (c != null) {
